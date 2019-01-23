@@ -1,79 +1,45 @@
 package dev.fido;
 
-import java.io.BufferedReader;
-import java.io.InputStreamReader;
-import java.io.PrintWriter;
+import java.io.*;
 import java.net.ServerSocket;
 import java.net.Socket;
-import java.util.ArrayList;
-import java.util.Iterator;
 
 public class Server {
-    ArrayList clientOutputStreams;
+    private static Socket client_socket;
+    private static ServerSocket server;
+    private static BufferedWriter output;
+    private static BufferedReader input;
 
-    public class ClientHandler implements Runnable {
-        BufferedReader reader;
-        Socket sock;
-
-        public ClientHandler(Socket clientSocket) {
-            try {
-                // Open communication with client during init
-                sock = clientSocket;
-                InputStreamReader isReader = new InputStreamReader(sock.getInputStream());
-                reader = new BufferedReader(isReader);
-            } catch (Exception ex) {ex.printStackTrace();}
-        }
-
-        public void run() {
-            String message;
-            try {
-                while ((message = reader.readLine()) != null) {
-                    System.out.println("read " + message);
-                    tellEveryone(message);
-                }
-            } catch (Exception ex) { ex.printStackTrace(); }
-        }
-
-    } // Close inner class.
-
+    private static final int port = 4004;
 
     public static void main(String[] args) {
-        new Server().go();
-    }
-
-    public void go() {
-        clientOutputStreams = new ArrayList();
+        String word = "";
         try {
-            // Bind to port 5000
-            ServerSocket serverSock = new ServerSocket(5005);
-
-            while (true) {
-                // Bind
-                Socket clientSocket = serverSock.accept();
-                // Build write channels to client
-                PrintWriter writer = new PrintWriter(clientSocket.getOutputStream());
-                clientOutputStreams.add(writer);
-
-                Thread t = new Thread(new ClientHandler(clientSocket));
-                t.start();
-                System.out.println("Got a connection!");
+            // Giving the server the port
+            server = new ServerSocket(port);
+            System.out.println("Server is awaiting for clients!");
+            // Waiting for the client connection
+            client_socket = server.accept();
+            input = new BufferedReader(new InputStreamReader(client_socket.getInputStream()));
+            output = new BufferedWriter(new OutputStreamWriter(client_socket.getOutputStream()));
+            while(!word.equals("Exit")){
+                word = input.readLine();
+                System.out.println("You've entered: " + word);
+                output.write("Hi, this is server, you've written: " + word + "\n");
+                output.flush();
             }
-        } catch (Exception ex) {
-            ex.printStackTrace();
-        }
-    }
-
-    public void tellEveryone(String message) {
-
-        Iterator it = clientOutputStreams.iterator();
-        // Process queues with active items
-        while (it.hasNext()) {
+        } catch (IOException exception) {
+            exception.printStackTrace();
+        } finally {
             try {
-                PrintWriter writer = (PrintWriter) it.next();
-                writer.println(message);
-                writer.flush();
-            } catch (Exception ex) {
-                ex.printStackTrace();
+                System.out.println("Closing the streams...");
+                client_socket.close();
+                output.close();
+                input.close();
+                System.out.println("Server is closed!");
+                server.close();
+            } catch (IOException exception) {
+                exception.printStackTrace();
             }
         }
     }

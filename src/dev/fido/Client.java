@@ -1,93 +1,44 @@
 package dev.fido;
 
-import javax.swing.*;
-import java.awt.*;
-import java.awt.event.ActionEvent;
-import java.awt.event.ActionListener;
-import java.io.BufferedReader;
-import java.io.IOException;
-import java.io.InputStreamReader;
-import java.io.PrintWriter;
+import java.io.*;
 import java.net.Socket;
 
 public class Client {
-    JTextArea incoming;
-    JTextField outgoing;
-    BufferedReader reader;
-    PrintWriter writer;
-    Socket sock;
+    private static Socket client_socket;
+    private static BufferedReader reader;
+    private static BufferedWriter output;
+    private static BufferedReader input;
+    private static Chat chat;
 
-    public void go() {
-        JFrame frame = new JFrame("Ludicrously Simple Chat Client");
-        JPanel mainPanel = new JPanel();
-        incoming = new JTextArea(15, 50);
-        incoming.setLineWrap(true);
-        incoming.setWrapStyleWord(true);
-        incoming.setEditable(false);
-        JScrollPane qScroller = new JScrollPane(incoming);
-        qScroller.setVerticalScrollBarPolicy(ScrollPaneConstants.VERTICAL_SCROLLBAR_ALWAYS);
-        qScroller.setHorizontalScrollBarPolicy(ScrollPaneConstants.HORIZONTAL_SCROLLBAR_NEVER);
-
-        outgoing = new JTextField(20);
-        JButton sendButton = new JButton("Send");
-        sendButton.addActionListener(new SendButtonListener());
-
-        mainPanel.add(qScroller);
-        mainPanel.add(outgoing);
-        mainPanel.add(sendButton);
-        setUpNetworking();
-
-        Thread readerThread = new Thread(new IncomingReader());
-        readerThread.start();
-
-        frame.getContentPane().add(BorderLayout.CENTER, mainPanel);
-        frame.setSize(400, 500);
-        frame.setVisible(true);
-    }
-
-    private void setUpNetworking() {
-        try {
-            // We're using localhost for testing
-            sock = new Socket("127.0.0.1", 5005);
-            InputStreamReader streamReader = new InputStreamReader(sock.getInputStream());
-            reader = new BufferedReader(streamReader);
-            writer = new PrintWriter(sock.getOutputStream());
-            System.out.println("Networking established.");
-        } catch (IOException ex) {
-            ex.printStackTrace();
-        }
-    }
-
-    public class SendButtonListener implements ActionListener {
-        public void actionPerformed(ActionEvent ev) {
-            try {
-                // Actually write. Writer is chained to input stream from socket.
-                // So this is actually going out to the server.
-                writer.println(outgoing.getText());
-                writer.flush();
-            } catch (Exception ex) {
-                ex.printStackTrace();
-            }
-            outgoing.setText("");
-            outgoing.requestFocus();
-        }
-    }
-
-    public class IncomingReader implements Runnable {
-        // Stay in the loop and read a line at a time.
-        // Print out to the scrolling text area with a newline added.
-        public void run() {
-            String message;
-            try {
-                while ((message = reader.readLine()) != null) {
-                    System.out.println("read " + message);
-                    incoming.append(message + "\n");
-                }
-            } catch (Exception ex) { ex.printStackTrace();}
-        }
-
-    }
     public static void main(String[] args) {
-        new Client().go();
+        chat = new Chat();
+        chat.visualize();
+        String word = "";
+        try {
+            client_socket = new Socket("localhost", 4004);
+            reader = new BufferedReader(new InputStreamReader(System.in));
+            input = new BufferedReader(new InputStreamReader(client_socket.getInputStream()));
+            output = new BufferedWriter(new OutputStreamWriter(client_socket.getOutputStream()));
+            while(!word.equals("Exit")){
+                System.out.print("Enter something here...");
+                word = reader.readLine();
+                output.write(word + "\n");
+                output.flush();
+                String server_message = input.readLine();
+                System.out.println(server_message);
+            }
+        } catch (IOException exception) {
+            exception.printStackTrace();
+        } finally {
+            try {
+                System.out.println("Client stopped working!");
+                reader.close();
+                input.close();
+                output.close();
+            } catch (IOException exception) {
+                exception.printStackTrace();
+            }
+        }
+
     }
 }
