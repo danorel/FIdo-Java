@@ -36,12 +36,12 @@ public class Runner {
 //        library.decode_file();
 
         // Working with Matrix
-//        Matrix matrix = new Matrix();
-//        matrix.set_sizes(2, 3);
-//        matrix.show_matrix();
+        Matrix matrix = new Matrix();
+        matrix.set_sizes(3, 3);
+        System.out.println(matrix.get_amount_of_ways());
 
         // Working with Note
-        Note notepad = new Note();
-        notepad.visualize();
+//        Note notepad = new Note();
+//        notepad.visualize();
     }
 }
